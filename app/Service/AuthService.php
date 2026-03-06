@@ -38,6 +38,19 @@ class AuthService
 
     public function otp(User $user, string $type = 'verification'): Otp
     {
+
+        // check for spam and throttle otp requests
+        $tries = 3;
+        $time = Carbon::now()->subMinutes(10);
+        $count = Otp::where([
+            'user_id' => $user->id,
+            'type' => $type,
+            'active' => 1,
+        ])->where('created_at', '>=', $time)->count();
+        if ($count >= $tries) {
+            abort(422, 'Too many OTP requests, please try again later');
+        }
+
         $code = random_int(100000, 999999);
         $otp = Otp::create([
             'user_id' => $user->id,
